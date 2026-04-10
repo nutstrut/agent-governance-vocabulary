@@ -1,0 +1,112 @@
+# Agent Governance Vocabulary v0.1
+# Canonical names for governance primitives across multi-issuer agent ecosystems.
+# Each system keeps its internal code; this layer provides shared reference + crosswalks.
+#
+# Precedent: IANA JWT claim registry, JSON-LD @context.
+# Co-authored: aeoess + QueBallSharken + douglasborthwick-crypto + MoltyCel + invited WG.
+# License: Apache-2.0
+
+version: "0.1.0"
+status: "draft - open for WG review"
+
+# ─────────────────────────────────────────────────
+# SIGNAL TYPES
+# Categorical labels stamped into signed envelopes.
+# Already in production across 9+ issuers via the multi-attestation envelope.
+# Renaming live values is OUT OF SCOPE - canonical aligns with envelope.
+# ─────────────────────────────────────────────────
+signal_types:
+  wallet_state:
+    definition: "Foundation-layer wallet attestation: balances, on-chain holdings, identity attachments."
+    issuers_in_production: ["InsumerAPI"]
+
+  behavioral_trust:
+    definition: "Scored trust assessment derived from observed agent behavior over time."
+    issuers_in_production: ["RNWY", "MolTrust"]
+    notes: "Per @douglasborthwick-crypto: canonical name is `behavioral_trust`, NOT `behavioral_fingerprint`. Fingerprint implies passive observation; trust implies scored assessment. Distinct primitives."
+
+  wallet_intelligence:
+    definition: "Behavioral classification of wallet activity (sybil signals, volume patterns, sanctions proximity)."
+    issuers_in_production: ["RNWY"]
+
+  reasoning_integrity:
+    definition: "Attestation surface = the action, not the actor. Wallet-agnostic by design."
+    issuers_in_production: ["ThoughtProof"]
+
+  compliance_risk:
+    definition: "Scored exposure assessment (counterparty flagged or clean). NOT a positive credential."
+    issuers_in_production: ["Revettr"]
+    notes: "Per @douglasborthwick-crypto: distinct from `compliance_credential`. Credential = holder possesses X. Risk = scored exposure. Keep both as distinct terms; do not collapse."
+
+  passport_grade:
+    definition: "Composite trust grade from agent passport issuance evidence."
+    issuers_in_production: ["APS"]
+
+  trust_verification:
+    definition: "Identity layer verification status (Grade 1-3, KYC presence, principal endorsement)."
+    issuers_in_production: ["AgentID", "APS"]
+
+  security_posture:
+    definition: "Wallet-discoverable: signed subject is the artifact (repo, commit, output), wallet is lookup key."
+    issuers_in_production: ["SAR"]
+
+  job_performance:
+    definition: "Wallet-bound assessment of completed task outcomes."
+    issuers_in_production: ["AgentGraph"]
+
+  settlement_witness:
+    definition: "Wallet-discoverable: outcome attestations bound to action artifacts."
+    issuers_in_production: ["Maiat"]
+
+# ─────────────────────────────────────────────────
+# DESCRIPTOR DIMENSIONS (per @QueBallSharken)
+# Each canonical term carries descriptor metadata answering concrete governance questions.
+# ─────────────────────────────────────────────────
+descriptor_dimensions:
+  enforcement_class:
+    question: "Is this artifact advisory, binding, or an enforceable refusal condition?"
+    values: ["advisory", "binding", "refusal_authority"]
+
+  validity_temporal:
+    question: "When is validity established and when must it still hold?"
+    values: ["at_issuance", "at_acceptance", "at_processing", "continuously"]
+
+  refusal_authority:
+    question: "Where does actual refusal authority live?"
+    values: ["issuer", "verifier", "consumer_policy", "shared"]
+
+  invariant_survival:
+    question: "How far does the invariant survive toward the irreversible primitive?"
+    values: ["pre_action", "during_action", "post_action", "permanent"]
+
+  replay_class:
+    question: "What level of replay is possible from recorded evidence alone?"
+    values: ["full_replay", "decision_replay", "fingerprint_only", "no_replay"]
+
+  governed_action_class:
+    question: "What class of action is being governed?"
+    values: ["read", "write", "transfer", "delegate", "publish", "compose"]
+
+# ─────────────────────────────────────────────────
+# CROSSWALK MATCH SEMANTICS (per @QueBallSharken)
+# Crosswalks MUST express partial match, not force clean mapping.
+# ─────────────────────────────────────────────────
+crosswalk_match_types:
+  exact:
+    definition: "Identical primitive, same signature semantics."
+  structural:
+    definition: "Same primitive shape, different field names."
+  partial:
+    definition: "Overlapping but not equivalent. Specify dimensions of divergence."
+  non_equivalent_similar_label:
+    definition: "Looks similar lexically but governance semantics differ. MUST be explicit."
+  no_mapping:
+    definition: "No analog in target system. Honest gap."
+
+# ─────────────────────────────────────────────────
+# OUT OF SCOPE FOR v0.1
+# ─────────────────────────────────────────────────
+out_of_scope:
+  - "reputation_score (per @douglasborthwick-crypto: aggregating inside vocabulary leaks consumer policy into naming layer)"
+  - "Free-form notes without structured semantics (per @MoltyCel: typed schemas only)"
+  - "Renaming any live multi-attestation envelope `type` field (would break JWKS-verified payloads in production)"
