@@ -130,11 +130,17 @@ decision_trajectory:
     descriptor_dimensions:
       enforcement_class: binding
       validity_temporal: sequence
-    issuers_in_production: ["PDR"]
+    issuers_in_production: ["PDR", "APS"]
     notes: |
       v0.1 deliberately leaves the addressing scheme implementation-specific.
       May tighten in v0.2 if cross-system validation surfaces a need for a
       shared canonical hash format. See docs/decision-trajectory.md.
+      APS implementation: `DecisionLineageReceipt` for the sequence envelope
+      plus `computeProbeIdentity`/`verifyProbeIdentity` (SDK v1.41.0) for
+      the per-entry content hash, using RFC 8785 JCS canonicalization and
+      SHA-256 by default. Two probes with the same semantic content and
+      different key order produce byte-identical hashes; array order is
+      preserved as semantic.
 
   baseline_revision:
     type: annotation
@@ -148,6 +154,12 @@ decision_trajectory:
       - behavioral_trust
       - divergence_signal
       - decision_lineage
+    issuers_in_production: ["APS"]
+    notes: |
+      APS implementation: `scope_version_hash` — pre-commitment over the
+      full scope state at issuance time, bound into the signed envelope.
+      Consumers verify the scope hash matches the current scope revision
+      before accepting a decision as fresh against the current baseline.
 
   divergence_signal:
     type: signal_type
@@ -161,7 +173,14 @@ decision_trajectory:
     descriptor_dimensions:
       enforcement_class: advisory
       validity_temporal: windowed
-    issuers_in_production: ["PDR"]
+    issuers_in_production: ["PDR", "APS"]
+    notes: |
+      APS implementation: `computeReputationDrift(rep, windowSize, opts?)`
+      over a `recentObservations` ring buffer on `ScopedReputation` (SDK
+      v1.41.0). Buffer capped at 30 events by default. Drift is the signed
+      sum of effective muDeltas across the window, returned independently
+      of any alert gate. Default thresholds 0.15 (warning) and 0.30
+      (critical) align with NexusGuard AIP v0.5.48.
 
   trust_velocity:
     type: derived_signal
@@ -174,7 +193,19 @@ decision_trajectory:
       history.
     requires:
       - observation_window
-    issuers_in_production: ["PDR"]
+    issuers_in_production: ["PDR", "APS"]
+    notes: |
+      APS implementation: `computeReputationDrift` gives the directional
+      change over the window (signed sum of muDeltas); `computeConsistencyScore`
+      gives the dispersion (population stddev mapped to a (0, 1] score
+      via 1 / (1 + stddev)). Both are shipped in SDK v1.41.0 and read from
+      the same `recentObservations` ring buffer. Consumers that want only
+      the rate-of-change signal use drift; consumers that want to distinguish
+      "fast-moving but predictable" from "slow-moving but erratic" compose
+      both. The §6.5 over-promiser robustness paradox (uniformly small
+      negative deltas scoring higher on consistency than alternating large
+      deltas, even when the alternating agent has a better mean) is locked
+      as a regression test — predictability is orthogonal to performance.
 
 # ─────────────────────────────────────────────────
 # CONSTRAINTS
