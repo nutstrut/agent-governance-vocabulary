@@ -32,7 +32,6 @@ Committed contributors so far:
 
 - `crosswalk/insumerapi.yaml` - @douglasborthwick-crypto
 - `crosswalk/satp/behavioral-trust.yaml` - SATP / @aeoess
-- `crosswalk/moltrust.yaml` - @MoltyCel
 - `crosswalk/aps.yaml` - @aeoess (this week)
 - `crosswalk/rfc-category-taxonomy.yaml` - reverse crosswalk mapping
   the ten MULTI-ATTESTATION-SPEC signal_types to the (proposed) A2A
