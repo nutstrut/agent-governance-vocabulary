@@ -1,0 +1,74 @@
+system: Settlement Attestation Receipt (SAR)
+
+description: >
+  A post-execution evidence layer that records the actual outcome of a mutation.
+  SAR provides verifiable evidence of what was executed, independent of whether
+  the original governing conditions were preserved.
+
+system_type: behavioral_evidence
+
+inputs:
+  - execution_event
+  - mutation_payload
+  - execution_metadata
+
+outputs:
+  - execution_record
+  - outcome_evidence
+
+maps_to:
+
+  behavioral_trust:
+    description: >
+      SAR provides post-execution evidence that a mutation occurred and
+      records the outcome, forming the second half of the behavioral trust model.
+
+  invariant_survival:
+    description: >
+      SAR can provide evidence of whether the expected invariant held
+      at execution (post_action), complementing pre_action validation layers.
+
+  refusal_authority:
+    description: >
+      SAR can indicate whether enforcement was carried out by infrastructure
+      or external authority depending on execution context.
+
+evidence_fields:
+
+  executed_object:
+    description: >
+      The actual object that was mutated.
+
+  executed_parameters:
+    description: >
+      The parameters used at execution time.
+
+  execution_timestamp:
+    description: >
+      When the mutation occurred.
+
+  executor_identity:
+    description: >
+      The component or system that performed the mutation.
+
+  outcome_status:
+    description: >
+      Whether the mutation succeeded, failed, or deviated.
+
+composition:
+
+  with_continuity_analyzer:
+    description: >
+      The continuity analyzer evaluates whether enforcement continuity should hold.
+      SAR provides post-execution evidence of whether the mutation actually
+      occurred as expected. Together they form a complete pre-action and
+      post-action validation model.
+
+notes: >
+  SAR does not evaluate policy correctness or enforcement continuity.
+  It records execution truth. It is intended to be composed with
+  validator-layer systems that evaluate pre-execution guarantees.
+
+limitations: >
+  SAR alone cannot determine whether a mutation was valid or correctly governed.
+  It only records what occurred, not whether it should have occurred.
