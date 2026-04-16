@@ -71,9 +71,6 @@ signal_types:
     issuers_in_production: ["SAR"]
 
   peer_review:
-    status: proposed
-    proposed_by: ["Logpose (crosswalk/logpose.yaml)"]
-    candidate_second_implementation: "RNWY reviewer-credibility methodology (tracked in issue #6)"
     definition: >
       Task-completion attestation signed by a delegating agent after a
       service agent completes work. Answers: did this agent actually do
@@ -88,7 +85,7 @@ signal_types:
       invariant_survival: post_action
       replay_class: full_replay
       governed_action_class: delegate
-    issuers_in_production: ["Logpose"]
+    issuers_in_production: ["Logpose", "RNWY"]
     notes: |
       W3C Verifiable Credentials 2.0 envelope. Ed25519 via @noble/curves.
       did:key identity (multicodec 0xed01, base58btc). RFC 8785 JCS
