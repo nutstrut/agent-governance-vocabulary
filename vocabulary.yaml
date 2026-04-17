@@ -97,11 +97,13 @@ signal_types:
     status: proposed
     proposed_by: ["SBR Protocol (crosswalk/soulboundrobots.yaml)"]
     definition: >
-      Cryptographic proof that the same agent identity (wallet) persisted
-      across a body swap or infrastructure migration. Answers: is this still
-      the same agent? Distinct from behavioral_trust (earned reputation) and
-      consent_provenance (authorization chain) — entity_continuity establishes
-      identity persistence as the prior condition for both.
+      Cryptographic proof that the same agent identity persists across an
+      infrastructure change — key rotation, host migration, execution
+      environment swap, or any event that would otherwise break identity
+      by default. Answers: is this still the same agent? Distinct from
+      behavioral_trust (earned reputation) and consent_provenance
+      (authorization chain) — entity_continuity establishes identity
+      persistence as the prior condition for both.
     issuers_in_production: ["SBR Protocol"]
     notes: |
       ES256 / P-256 signed JWT. JWKS at soulboundrobots.ai/.well-known/jwks.json.
