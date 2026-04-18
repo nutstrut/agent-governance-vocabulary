@@ -40,8 +40,8 @@ signal_types:
 
   governance_attestation:
     definition: "Signed attestation that an agent or action satisfied a declared governance requirement (policy, delegation scope, compliance check, etc.). Distinct from compliance_risk (scored exposure) and trust_verification (identity layer status)."
-    issuers_in_production: ["AgentNexus", "Nobulex", "SINT"]
-    notes: "Canonicalized Apr 15 after 3 independent implementations surfaced. Per CONTRIBUTING.md threshold (2+ implementations)."
+    issuers_in_production: ["AgentNexus", "Nobulex", "SINT", "APS"]
+    notes: "Canonicalized Apr 15 after 3 independent implementations surfaced. Per CONTRIBUTING.md threshold (2+ implementations). APS added Apr 17 as 4th production issuer via Build D2 signed trust profile endpoint (gateway.aeoess.com/api/v1/public/trust/:agentId, verified against gateway JWKS)."
     descriptor_dimensions:
       enforcement_class: binding
       validity_temporal: at_issuance

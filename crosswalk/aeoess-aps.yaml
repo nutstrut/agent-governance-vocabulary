@@ -1,0 +1,372 @@
+# crosswalk/aeoess-aps.yaml
+#
+# Maps the Agent Passport System (APS) public SDK and gateway surface to
+# the canonical vocabulary defined in vocabulary.yaml v0.1.
+#
+# APS is the identity and enforcement layer for AI agents. It ships Ed25519
+# passports, scoped delegation chains with monotonic narrowing, a gateway
+# enforcement boundary that is both judge and executor, and signed evidence
+# artifacts covering delegation decisions, receipts, attestations, and
+# reputation drift.
+#
+# This crosswalk covers what APS itself issues. The protocol (SDK) is
+# open-source Apache-2.0; the production gateway is a hosted product.
+# Both produce evidence against the same canonical signatures.
+#
+# v2 note (2026-04-17): APS shipped v2.0.0 architecture separation.
+# Protocol primitives (crypto, types, scope logic, adapters, conformance
+# suite) stay in the public SDK; operational intelligence (analytics,
+# compliance automation, runtime state) moved to the private gateway.
+# This crosswalk reflects the v2 surface. v1.46.0 remains on npm @latest
+# for partners pinned to the monolithic shape; all signal-type mappings
+# below hold for both v1 and v2 because the public-API primitives are
+# byte-identical across the split.
+#
+# Spec: https://github.com/aeoess/agent-passport-system
+# npm SDK: https://www.npmjs.com/package/agent-passport-system
+# npm MCP: https://www.npmjs.com/package/agent-passport-system-mcp
+# PyPI: https://pypi.org/project/agent-passport-system/
+# Gateway: https://gateway.aeoess.com
+# JWKS: https://gateway.aeoess.com/.well-known/jwks.json
+# Release notes v2: https://github.com/aeoess/agent-passport-system/issues/16
+
+system:
+  name: Agent Passport System
+  short_name: APS
+  home: https://aeoess.com
+  github: https://github.com/aeoess/agent-passport-system
+  spec_version: "v2.0.0-beta.0 on @next, v1.46.0 on @latest"
+  jwks: https://gateway.aeoess.com/.well-known/jwks.json
+  role: >
+    Identity and enforcement layer for AI agents. Ships Ed25519 passports
+    (grade 0-3), scoped delegation chains with monotonic narrowing,
+    cascade revocation, a gateway enforcement boundary, and signed evidence
+    covering delegations, receipts, attestations, and reputation drift.
+    Other systems (SINT, MolTrust, AgentID, PDR, SAR) compose on top of
+    APS identity for their own policy or trust layers.
+  license: Apache-2.0
+  foundations_target: AAIF (Agentic AI Infrastructure Foundation) pending submission
+
+license: Apache-2.0
+maintainer:
+  github: aeoess
+  author: Tymofii Pidlisnyi
+  contact: signal@aeoess.com
+
+# ─────────────────────────────────────────────────
+# SIGNAL TYPE MAPPINGS
+# How APS represents each canonical signal_type from vocabulary.yaml.
+# ─────────────────────────────────────────────────
+signal_types:
+
+  passport_grade:
+    canonical: passport_grade
+    match: exact
+    notes: |
+      APS is the sole production issuer listed in vocabulary.yaml for this
+      signal_type. A passport grade (0-3) is the composite trust grade
+      derived from identity binding strength, endorsement chain length,
+      operational history, and governance-attestation density. Issued at
+      passport creation time and re-evaluated on endorsement or revocation
+      events.
+    aps_term: PassportGrade
+    aps_field: "passport.grade"
+    aps_symbols:
+      - getPassportGrade()
+      - computePassportGradeFromEvidence()
+    signed_shape: |
+      Grade is embedded in the signed passport envelope and referenced by
+      hash in downstream governance_attestation receipts. Verifiable
+      against the passport issuer's JWKS at issuance time.
+    issuer_uri: https://gateway.aeoess.com
+    algorithm: Ed25519
+    kid_prefix: aeoess-passport-
+
+  trust_verification:
+    canonical: trust_verification
+    match: exact
+    notes: |
+      Co-listed with AgentID in vocabulary.yaml. APS ships Grade 0-3
+      passport verification, KYC presence via did:web endorsement
+      chains, and principal endorsement as first-class identity-layer
+      attestations. Consumers of trust_verification can ingest APS
+      passport signatures directly or receive derivative attestations
+      via the gateway's /api/v1/public/trust/:agentId endpoint.
+    aps_term: TrustVerification
+    aps_field: "verification.trust_layer_status"
+    aps_symbols:
+      - verifyPassport()
+      - verifyEndorsement()
+      - getPassportGrade()
+    issuer_uri: https://gateway.aeoess.com
+    algorithm: Ed25519
+
+  governance_attestation:
+    canonical: governance_attestation
+    match: exact
+    notes: |
+      APS shipped this as a production signal_type with v2.0.0-beta.0
+      (Build D2, 2026-04-17). The gateway's /api/v1/public/trust/:agentId
+      endpoint returns a JWS-signed trust profile whose envelope type is
+      `governance_attestation`. The signed payload attests that an agent
+      satisfies a declared governance requirement (delegation scope,
+      revocation status, reputation threshold, or compliance check).
+
+      Note for vocabulary.yaml maintainers: please add APS to
+      issuers_in_production for governance_attestation. Current list
+      (AgentNexus, Nobulex, SINT) should read
+      (AgentNexus, Nobulex, SINT, APS).
+    aps_term: GovernanceAttestation
+    aps_field: "gateway.governance_attestation"
+    aps_symbols:
+      - createReceipt()
+      - verifyReceipt()
+      - GET /api/v1/public/trust/:agentId
+    issuer_uri: https://gateway.aeoess.com
+    algorithm: Ed25519
+    kid_prefix: aeoess-gateway-attest-
+    signed_shape: |
+      Compact JWS (RFC 7515). Payload contains the agent DID, passport
+      grade, active delegation scope root, revocation status, and
+      issuance timestamp. Verified against JWKS at the public endpoint.
+    descriptor_dimensions:
+      enforcement_class: binding
+      validity_temporal: at_issuance
+      refusal_authority: structurally_impossible_to_violate
+      invariant_survival: post_action
+      replay_class: full_replay
+      governed_action_class: publish
+
+  behavioral_trust:
+    canonical: behavioral_trust
+    match: partial
+    notes: |
+      APS ships `ScopedReputation` with Bayesian posterior tracking
+      (alpha/beta parameters) and a `recentObservations` ring buffer for
+      drift computation. This is the raw material for behavioral trust
+      but is not the canonical behavioral_trust issuer pattern used by
+      RNWY or MolTrust (who produce scored, externally-consumable trust
+      assessments). APS exposes the primitives; consumer policy decides
+      the threshold. Match is partial: APS supplies observations, not a
+      single scored assessment.
+    aps_term: ScopedReputation
+    aps_field: "reputation.posterior"
+    aps_symbols:
+      - getReputation()
+      - updateReputation()
+      - computeReputationDrift()
+    see_also:
+      - vocabulary.yaml#decision_trajectory.divergence_signal  # the drift primitive APS issues directly
+
+  compliance_risk:
+    canonical: compliance_risk
+    match: no_mapping
+    notes: |
+      APS does not issue compliance_risk attestations. This is Revettr's
+      domain (counterparty risk scoring for x402 / MPP commerce). APS's
+      gateway can consume Revettr compliance_risk receipts as governance
+      inputs, but does not produce them.
+
+  wallet_state:
+    canonical: wallet_state
+    match: no_mapping
+    notes: |
+      APS is identity/enforcement, not wallet-state. InsumerAPI is the
+      production issuer. APS can bind a passport to a wallet address via
+      the v2 BoundWallet primitive (SDK v1.43.0+, stable across v2), but
+      does not issue signed wallet-state attestations. The wallet binding
+      itself rides governance_attestation, not wallet_state.
+
+  wallet_intelligence:
+    canonical: wallet_intelligence
+    match: no_mapping
+    notes: >
+      Not in APS scope. RNWY issues behavioral wallet classifications.
+
+  reasoning_integrity:
+    canonical: reasoning_integrity
+    match: no_mapping
+    notes: |
+      Not in APS scope. ThoughtProof is the production issuer. APS attests
+      the agent identity and delegation scope around an action; the
+      reasoning-integrity of the action content itself is a separate layer.
+
+  peer_review:
+    canonical: peer_review
+    match: no_mapping
+    notes: |
+      Not in APS scope. Logpose (task-completion) and RNWY (reviewer-
+      credibility) are the production issuers. APS provides the identity
+      layer that peer_review attestations authenticate against, but does
+      not issue the peer_review signal itself.
+
+  security_posture:
+    canonical: security_posture
+    match: no_mapping
+    notes: "Not in APS scope. AgentGraph issues."
+
+  job_performance:
+    canonical: job_performance
+    match: no_mapping
+    notes: "Not in APS scope. Maiat issues."
+
+  settlement_witness:
+    canonical: settlement_witness
+    match: no_mapping
+    notes: "Not in APS scope. SAR issues."
+
+  entity_continuity:
+    canonical: entity_continuity
+    match: partial
+    notes: |
+      APS handles key rotation via signed rotation events, but does not
+      issue entity_continuity as a standalone signal_type. SBR Protocol
+      is the proposed canonical issuer. APS key rotation records could
+      be exposed as entity_continuity receipts in a future minor version
+      if there is cross-system demand; currently we track the property
+      internally via `rotateKey()` + audit trail rather than as an
+      externally-consumable attestation.
+    aps_symbols:
+      - rotateKey()
+      - verifyRotationChain()
+
+# ─────────────────────────────────────────────────
+# DECISION TRAJECTORY MAPPINGS
+# Longitudinal primitives from vocabulary.yaml#decision_trajectory.
+# APS is a production issuer for several of these.
+# ─────────────────────────────────────────────────
+decision_trajectory:
+
+  decision_lineage:
+    canonical: decision_lineage
+    match: exact
+    notes: |
+      APS ships `DecisionLineageReceipt` as the envelope plus
+      `computeProbeIdentity` / `verifyProbeIdentity` for per-entry content
+      hashing (SDK v1.41.0+, preserved unchanged in v2). RFC 8785 JCS
+      canonicalization, SHA-256 by default. Two probes with identical
+      semantic content and different key order produce byte-identical
+      hashes. Co-issuer with PDR per vocabulary.yaml.
+    aps_term: DecisionLineageReceipt
+    aps_field: "decisions.lineage"
+    aps_symbols:
+      - createDecisionLineageReceipt()
+      - verifyDecisionLineageReceipt()
+      - computeProbeIdentity()
+      - verifyProbeIdentity()
+    since: v1.41.0
+    preserved_in: v2.0.0-beta.0
+
+  baseline_revision:
+    canonical: baseline_revision
+    match: structural
+    notes: |
+      APS ships `scope_version_hash` as a pre-commitment over the full
+      scope state at issuance time, bound into the signed envelope.
+      Consumers verify the scope hash matches the current scope revision
+      before accepting a decision as fresh. Same semantic as
+      baseline_revision, different field name. APS is the sole listed
+      issuer in vocabulary.yaml.
+    aps_term: ScopeVersionHash
+    aps_field: "delegation.scope_version_hash"
+    since: v1.41.0
+    preserved_in: v2.0.0-beta.0
+
+  divergence_signal:
+    canonical: divergence_signal
+    match: exact
+    notes: |
+      APS ships `computeReputationDrift(rep, windowSize, opts?)` over the
+      `recentObservations` ring buffer on ScopedReputation. Default buffer
+      30 events; drift is the signed sum of effective muDeltas across the
+      window. Independent of any alert gate. Default thresholds 0.15
+      (warning) and 0.30 (critical). Co-issuer with PDR.
+    aps_term: ReputationDrift
+    aps_field: "reputation.drift"
+    aps_symbols:
+      - computeReputationDrift()
+    since: v1.41.0
+    preserved_in: v2.0.0-beta.0
+
+  trust_velocity:
+    canonical: trust_velocity
+    match: exact
+    notes: |
+      APS ships `computeReputationDrift` (directional change) and
+      `computeConsistencyScore` (dispersion, population stddev mapped via
+      1 / (1 + stddev)) from the same `recentObservations` ring buffer.
+      Consumers that want only rate-of-change use drift; consumers that
+      want to distinguish "fast-moving but predictable" from "slow-moving
+      but erratic" compose both. The §6.5 over-promiser robustness paradox
+      (uniformly small negative deltas scoring higher on consistency than
+      alternating large deltas, even when the alternating agent has a
+      better mean) is locked as a regression test. Co-issuer with PDR.
+    aps_term: ReputationVelocity
+    aps_symbols:
+      - computeReputationDrift()
+      - computeConsistencyScore()
+    since: v1.41.0
+    preserved_in: v2.0.0-beta.0
+
+# ─────────────────────────────────────────────────
+# CONSTRAINT DECLARATIONS
+# ─────────────────────────────────────────────────
+constraints:
+
+  observation_window:
+    canonical: observation_window
+    match: exact
+    notes: |
+      APS declares `windowSize` explicitly on every drift or consistency
+      computation. Default 30 events. Exposed in receipt envelopes so
+      consumers can verify what window the signal was computed over.
+
+# ─────────────────────────────────────────────────
+# APS-SPECIFIC PRIMITIVES NOT YET IN VOCABULARY
+# Governance primitives APS ships that are not canonical signal_types
+# (because signal_types describe attestation shapes, and these describe
+# runtime enforcement mechanics). Listed here for completeness.
+# ─────────────────────────────────────────────────
+out_of_vocabulary_primitives:
+
+  delegation_scope_narrowing:
+    description: >
+      Monotonic narrowing of delegation scope at each transfer point.
+      Authority can only decrease. Core APS invariant.
+    aps_symbols: [createDelegation, subDelegate, scopeAuthorizes, scopeCovers]
+    rationale: "Runtime enforcement mechanic, not a signal type."
+
+  cascade_revocation:
+    description: >
+      Revoking a delegation transitively revokes all downstream
+      delegations derived from it. The gateway enforces the cascade.
+    aps_symbols: [revokeDelegation, verifyRevocation]
+    rationale: "Runtime enforcement mechanic, not a signal type."
+
+  wallet_binding:
+    description: >
+      Cryptographic binding between a passport and an on-chain wallet.
+      Shipped v1.43.0 (BoundWallet primitive), stable across v2.
+    aps_symbols: [bindWallet, verifyWalletBinding]
+    rationale: >
+      Produces evidence rides governance_attestation; the binding itself
+      is a delegation-layer primitive, not a standalone signal type.
+
+# ─────────────────────────────────────────────────
+# CROSSWALK SUMMARY
+# ─────────────────────────────────────────────────
+summary:
+  signal_types_exact: 3        # passport_grade, trust_verification, governance_attestation
+  signal_types_partial: 2      # behavioral_trust, entity_continuity
+  signal_types_no_mapping: 7   # rest (out of APS scope)
+  decision_trajectory_exact: 3 # decision_lineage, divergence_signal, trust_velocity
+  decision_trajectory_structural: 1  # baseline_revision (scope_version_hash)
+  constraints_exact: 1         # observation_window
+
+  protocol_version_pinning: >
+    All mappings in this crosswalk hold for both v1.46.0 (@latest) and
+    v2.0.0-beta.0 (@next). The v2 architecture separation moved runtime
+    product-layer code into a private gateway package but preserved the
+    public-API signal primitives byte-identical. Downstream vocabulary
+    consumers do not need to version-pin against APS for signal-type
+    correctness.
