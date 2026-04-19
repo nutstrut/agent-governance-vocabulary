@@ -1,0 +1,90 @@
+system: continuity_analyzer
+version: "0.1"
+license: "Apache-2.0"
+maintainer: "nutstrut"
+repository: "https://github.com/nutstrut/continuity-analyzer"
+failure_code_registry: "https://raw.githubusercontent.com/nutstrut/continuity-analyzer/main/failure_codes.yaml"
+
+summary: >
+  Continuity Analyzer is a pre-action governance continuity inference layer.
+  It evaluates whether declared governance conditions survive from decision
+  point to mutation boundary across five predicates: object_continuity,
+  constraint_continuity, temporal_continuity, authority_continuity, and
+  executor_continuity.
+
+mappings:
+  - canonical: entity_continuity
+    internal: continuity_analyzer
+    match: partial
+    notes: >
+      Continuity Analyzer provides an independent implementation within the
+      broader entity_continuity signal category, focusing on mutation-bound
+      enforcement continuity rather than cryptographic identity persistence
+      across infrastructure changes.
+
+      In combination with structural continuity implementations such as
+      SBR-002 / PDR identity continuity records, and with behavioral signals
+      such as behavioral_trust, this supports a multi-axis continuity model
+      in which consumers can compose:
+      - structural continuity (key / identity persistence)
+      - behavioral continuity (drift / trust-sensitive continuity evidence)
+      - enforcement continuity (invariant survival to the mutation boundary)
+
+      This crosswalk represents a second independent implementation in the
+      entity_continuity category and should be considered in evaluating
+      promotion of entity_continuity from proposed to canonical under the
+      repository's two-implementation rule.
+
+descriptor_dimensions:
+  enforcement_class: advisory
+  validity_temporal: at_issuance
+  refusal_authority: consumer_policy
+  invariant_survival: post_action
+  replay_class: full_replay
+  governed_action_class: compose
+
+predicate_mappings:
+  object_continuity:
+    canonical_dimension_refs:
+      - invariant_survival
+
+  constraint_continuity:
+    canonical_dimension_refs:
+      - invariant_survival
+
+  temporal_continuity:
+    canonical_dimension_refs:
+      - invariant_survival
+
+  authority_continuity:
+    canonical_dimension_refs:
+      - refusal_authority
+
+  executor_continuity:
+    canonical_dimension_refs:
+      - refusal_authority
+
+machine_readable_surface:
+  analyzer:
+    id: "continuity"
+    failure_code_namespace: "continuity"
+    failure_code_registry: "https://raw.githubusercontent.com/nutstrut/continuity-analyzer/main/failure_codes.yaml"
+  notes: >
+    Failure codes are analyzer-local and self-published by the analyzer.
+    Canonical meaning alignment is provided through canonical_dimension_refs,
+    whose values resolve against vocabulary.yaml.
+
+composition:
+  with_settlement_witness:
+    relationship: complementary_layer
+    notes: >
+      Continuity Analyzer evaluates whether governance continuity should hold
+      before execution. Settlement Witness / SAR provides post-execution
+      evidence of what actually occurred. The two layers are complementary
+      and intentionally separate.
+
+notes: >
+  The canonical registry for failure codes lives in the analyzer repository.
+  This crosswalk links the analyzer's machine-readable output surface to the
+  shared vocabulary layer without moving analyzer-local code ownership into
+  the vocabulary repo.
