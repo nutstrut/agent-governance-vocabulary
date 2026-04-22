@@ -1,0 +1,24 @@
+# agent-governance-vocabulary
+
+> Canonical vocabulary for agent-governance terminology. Coordinates shared semantic ground across APS, SINT, AgentID, AgentGraph, MolTrust, ScopeBlind, and other governance-adjacent projects. Crosswalks under `crosswalk/` map one project's native terms into the vocabulary. Apache-2.0.
+
+This is a neutral-ground repo. Multiple vendors contribute. The neutrality is the value. APS's crosswalk sits alongside SINT's, AgentID's, AgentGraph's, and others, with equal standing.
+
+## Structure
+
+- `vocab.yaml`: the single canonical term file
+- `crosswalk/<project>.yaml`: per-project mappings into the vocabulary
+- `fixtures/`: test vectors referencing term ids from `vocab.yaml`
+- `docs/`: crosswalk format, rationale notes, contribution guides
+
+## Canonical references
+
+- [README.md](README.md): vocabulary overview
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to contribute a crosswalk
+- [AGENTS.md](AGENTS.md): instructions for AI coding agents working on this repo, including the 5-check crosswalk PR protocol
+- [CLAUDE.md](CLAUDE.md): pointer to AGENTS.md for Claude Code
+
+## Related projects
+
+- APS SDK: https://github.com/aeoess/agent-passport-system
+- Website: https://aeoess.com
