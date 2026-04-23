@@ -121,6 +121,11 @@ signal_types:
       EAS schema: 0xbc21ace81780fe7c494fd985b4b220698d23a79ca4f92db349209b75908519ce
       Five migration types: owner_upgrade, maintenance_swap, emergency_evacuation,
       employment_transfer, hot_swap. Snapshot evidence only.
+      
+    measurement_point:
+      type: enum
+      values: ["session_boundary", "mutation_boundary"]
+      
     descriptor_dimensions:
       enforcement_class: advisory
       validity_temporal: at_issuance
