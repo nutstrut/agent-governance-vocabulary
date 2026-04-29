@@ -140,12 +140,31 @@ descriptor_dimensions:
 
   validity_temporal:
     question: "When is validity established and when must it still hold?"
-    values: ["at_issuance", "at_acceptance", "at_processing", "continuously", "sequence", "windowed"]
+    values: ["at_issuance", "at_acceptance", "at_processing", "continuously", "sequence", "windowed", "epoch"]
     notes: |
       `sequence` and `windowed` were added to support the decision_trajectory
       section (per @nanookclaw, PDR Section 8). `sequence` denotes longitudinal
       ordered records (e.g. decision_lineage); `windowed` denotes signals
       collected over an explicitly declared observation_window.
+
+      `epoch` denotes observer-relative validity: ticks on substantive state
+      transitions (implementation-defined per agent), not on every event of
+      a stream. Two verifiers of the same wall-clock window can produce
+      different counts, which is the load-bearing distinction from `sequence`
+      (event-relative, observer-invariant). Used for signals whose validity
+      should follow agent state rather than agent activity.
+
+      Substantive-transition lower bound: `epoch` ticks MUST be coarser than
+      per-call I/O events. Worked example (distributed inference): a 50-token
+      generation produces 50 `sequence` ticks but zero `epoch` ticks. The
+      agent is computing forward passes, state does not change until
+      generation completes.
+
+      Canonical layer placements: continuity (primary), identity (secondary).
+
+      Expected crosswalks include session-bound and continuity-layer epoch
+      counters in production governance frameworks. Discussion at issue #58
+      and a2aproject/A2A#1786.
 
   refusal_authority:
     question: "Where does actual refusal authority live?"
