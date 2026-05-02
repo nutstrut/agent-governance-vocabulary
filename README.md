@@ -30,9 +30,22 @@ Open a PR adding `crosswalk/<your-system>.yaml`. Use the match types from `vocab
 
 Committed contributors so far:
 
+- `crosswalk/a2a.yaml` - @rnwy
+- `crosswalk/aeoess-aps.yaml` - @aeoess (renamed from aps.yaml)
+- `crosswalk/agent-did.yaml` - @edisonduran
+- `crosswalk/agentlair.yaml` - @piiiico
+- `crosswalk/agentnexus.yaml` - @kevinkaylie
+- `crosswalk/asqav.yaml` - @jagmarques
+- `crosswalk/continuity-analyzer.yaml` - @nutstrut
+- `crosswalk/dcp-ai.yaml` - @lktron00
+- `crosswalk/fidelity-spec.yaml` - @lowkey-divine
 - `crosswalk/insumerapi.yaml` - @douglasborthwick-crypto
-- `crosswalk/satp/behavioral-trust.yaml` - SATP / @aeoess
-- `crosswalk/aps.yaml` - @aeoess (this week)
+- `crosswalk/jep.yaml` - @schchit
+- `crosswalk/logpose.yaml` - @rkaushik29
+- `crosswalk/moltrust.yaml` - @MoltyCel
+- `crosswalk/nobulex.yaml` - @arian-gogani
+- `crosswalk/pathcourse-health.yaml` - @alex-pathcourse
+- `crosswalk/pic.yaml` - @madeinplutofabio
 - `crosswalk/rfc-category-taxonomy.yaml` - reverse crosswalk mapping
   the ten MULTI-ATTESTATION-SPEC signal_types to the (proposed) A2A
   RFC trust evidence category taxonomy. Drafted on
@@ -40,6 +53,14 @@ Committed contributors so far:
   ([@AlexanderLawson17](https://github.com/AlexanderLawson17)). Eight
   of ten rows currently need per-issuer field-set confirmation; see
   the file's `review_required` block for the tag list.
+- `crosswalk/rnwy.yaml` - @rnwy
+- `crosswalk/sar.yaml` - @nutstrut
+- `crosswalk/satp/behavioral-trust.yaml` - @0xbrainkid
+- `crosswalk/signet.yaml` - @willamhou
+- `crosswalk/sint.yaml` - @pshkv
+- `crosswalk/soulboundrobots.yaml` - @rnwy
+- `crosswalk/sovereign-atom.yaml` - @AuthorPrime
+- `crosswalk/veritasacta.yaml` - @tomjwxf
 
 ## License
 
