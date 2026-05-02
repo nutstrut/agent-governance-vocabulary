@@ -28,6 +28,8 @@ Renaming live signed envelope `type` values is explicitly out of scope - canonic
 
 Open a PR adding `crosswalk/<your-system>.yaml`. Use the match types from `vocabulary.yaml > crosswalk_match_types`. Partial match and non-equivalent-similar-label are encouraged - this layer exists to clarify differences, not hide them.
 
+See [`docs/generated/crosswalk-matrix.md`](./docs/generated/crosswalk-matrix.md) for the system × signal-type match grid across the corpus.
+
 Committed contributors so far:
 
 - `crosswalk/a2a.yaml` - @rnwy
