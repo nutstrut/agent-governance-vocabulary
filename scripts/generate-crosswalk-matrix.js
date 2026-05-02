@@ -1,0 +1,248 @@
+#!/usr/bin/env node
+// generate-crosswalk-matrix.js — emit a system × signal-type match grid.
+// Reads vocabulary.yaml and crosswalk/*.yaml, writes
+// docs/generated/crosswalk-matrix.md.
+// Usage: node scripts/generate-crosswalk-matrix.js
+// Exit:  0 always (validator handles correctness; this is a docs build).
+'use strict'
+
+const fs = require('fs')
+const path = require('path')
+const yaml = require('js-yaml')
+
+const ROOT = path.resolve(__dirname, '..')
+const VOCAB_PATH = path.join(ROOT, 'vocabulary.yaml')
+const CROSSWALK_DIR = path.join(ROOT, 'crosswalk')
+const OUT_DIR = path.join(ROOT, 'docs', 'generated')
+const OUT_PATH = path.join(OUT_DIR, 'crosswalk-matrix.md')
+
+const BADGE = {
+  exact:                       '✅',  // ✅
+  partial:                     '🟡', // 🟡
+  structural:                  '🟠', // 🟠
+  non_equivalent_similar_label:'🔵', // 🔵
+  no_mapping:                  '⚪',       // ⚪
+}
+const NOT_ADDRESSED = '—' // — em dash, signal absent from crosswalk
+const UNGRADED = '·'      // mapped but no `match` field declared
+
+function walkYaml(dir) {
+  const out = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...walkYaml(full))
+    else if (entry.name.endsWith('.yaml') || entry.name.endsWith('.yml')) out.push(full)
+  }
+  return out.sort()
+}
+
+// "aeoess-aps.yaml" -> "APS". "agent-did.yaml" -> "Agent-Did".
+// Strip leading "aeoess-" (own-namespace prefix) before title-casing.
+// Special-cases: known acronyms uppercase entirely.
+const ACRONYMS = new Set(['aps', 'a2a', 'jep', 'sar', 'rnwy', 'satp', 'sint', 'pic', 'asqav', 'dcp'])
+function systemLabel(filePath) {
+  // Take the basename (without extension), strip leading "aeoess-" so
+  // own-namespace crosswalks read as the system, then title-case each
+  // hyphen-separated segment. Known acronyms uppercase entirely.
+  // For nested files (e.g. satp/behavioral-trust.yaml), keep the dir
+  // prefix lowercased so the row stays readable.
+  const rel = path.relative(CROSSWALK_DIR, filePath).replace(/\.yaml$|\.yml$/i, '')
+  const parts = rel.split(path.sep)
+  const base = parts[parts.length - 1].replace(/^aeoess-/i, '')
+  const titled = base.split('-').map(w =>
+    ACRONYMS.has(w.toLowerCase()) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)
+  ).join('-')
+  if (parts.length > 1) {
+    const dir = parts.slice(0, -1).join('/')
+    return `${dir}/${titled}`
+  }
+  return titled
+}
+
+function loadCrosswalk(filePath) {
+  try {
+    const doc = yaml.load(fs.readFileSync(filePath, 'utf8'))
+    return doc && typeof doc === 'object' ? doc : null
+  } catch {
+    return null
+  }
+}
+
+function pad(s, n) { return s + ' '.repeat(Math.max(0, n - s.length)) }
+
+function main() {
+  // 1. Load vocabulary, get canonical signal types in declaration order.
+  const vocab = yaml.load(fs.readFileSync(VOCAB_PATH, 'utf8'))
+  const canonicalSignals = Object.keys(vocab.signal_types || {})
+
+  // 2. Walk crosswalk/, classify each file.
+  const files = walkYaml(CROSSWALK_DIR)
+  const systems = []   // standard-format, included in matrix
+  const altFormat = [] // no signal_types block — listed in footer
+  const reverseSkipped = [] // crosswalk_type === 'rfc_category_reverse'
+  const testFixtures = [] // _test-invalid.yaml etc
+
+  for (const f of files) {
+    const rel = path.relative(ROOT, f)
+    const base = path.basename(f)
+    if (base.startsWith('_')) { testFixtures.push(rel); continue }
+
+    const doc = loadCrosswalk(f)
+    if (!doc) { altFormat.push({ rel, note: 'YAML parse failed or empty file' }); continue }
+
+    if (doc.crosswalk_type === 'rfc_category_reverse') {
+      reverseSkipped.push(rel)
+      continue
+    }
+
+    if (!doc.signal_types || typeof doc.signal_types !== 'object') {
+      altFormat.push({ rel, note: 'no signal_types block (alternative crosswalk format)' })
+      continue
+    }
+
+    // Build the per-canonical-signal map for this system.
+    // Entries with a `match` field get the badge; entries that exist
+    // without a graded match get the UNGRADED marker (mapped without
+    // strength grade).
+    const cells = {}
+    for (const [key, entry] of Object.entries(doc.signal_types)) {
+      const canonical = (entry && entry.canonical) || key
+      if (!canonicalSignals.includes(canonical)) continue
+      const m = entry && entry.match
+      cells[canonical] = typeof m === 'string' ? m : '__ungraded__'
+    }
+
+    systems.push({
+      label: systemLabel(f),
+      rel,
+      cells,
+    })
+  }
+
+  systems.sort((a, b) => a.label.localeCompare(b.label, 'en', { sensitivity: 'base' }))
+
+  // 3. Build the table.
+  const header = ['System', ...canonicalSignals]
+  const rows = [header]
+  for (const sys of systems) {
+    const row = [sys.label]
+    for (const sig of canonicalSignals) {
+      const m = sys.cells[sig]
+      if (!m) row.push(NOT_ADDRESSED)
+      else if (m === '__ungraded__') row.push(UNGRADED)
+      else if (BADGE[m]) row.push(BADGE[m])
+      else row.push(m) // unknown match value, render as-is
+    }
+    rows.push(row)
+  }
+
+  // Markdown table emission with sane alignment.
+  const colWidths = header.map((_, c) => Math.max(...rows.map(r => String(r[c]).length)))
+  const renderRow = r => '| ' + r.map((cell, c) => pad(String(cell), colWidths[c])).join(' | ') + ' |'
+  const sep = '| ' + colWidths.map(w => '-'.repeat(w)).join(' | ') + ' |'
+  const tableLines = [renderRow(rows[0]), sep, ...rows.slice(1).map(renderRow)]
+
+  // 4. Coverage stats.
+  const coverage = {}
+  for (const sig of canonicalSignals) coverage[sig] = 0
+  for (const sys of systems) {
+    for (const sig of canonicalSignals) {
+      if (sys.cells[sig]) coverage[sig] += 1
+    }
+  }
+  const sortedByCoverage = canonicalSignals
+    .map(sig => ({ sig, n: coverage[sig], pct: systems.length === 0 ? 0 : Math.round((coverage[sig] / systems.length) * 100) }))
+    .sort((a, b) => b.n - a.n || a.sig.localeCompare(b.sig))
+
+  // 5. Compose the markdown.
+  const today = new Date().toISOString().slice(0, 10)
+  const lines = []
+  lines.push('# Crosswalk Matrix')
+  lines.push('')
+  lines.push(`Auto-generated on ${today}. ${systems.length} systems × ${canonicalSignals.length} canonical signal types.`)
+  lines.push('')
+  lines.push('Cell legend:')
+  lines.push('')
+  lines.push(`- ${BADGE.exact} \`exact\` — same question, same surface shape`)
+  lines.push(`- ${BADGE.structural} \`structural\` — same question, different surface`)
+  lines.push(`- ${BADGE.partial} \`partial\` — overlapping but not identical scope`)
+  lines.push(`- ${BADGE.non_equivalent_similar_label} \`non_equivalent_similar_label\` — different question entirely`)
+  lines.push(`- ${BADGE.no_mapping} \`no_mapping\` — explicit gap with technical rationale`)
+  lines.push(`- ${UNGRADED} mapped but no \`match\` strength declared (legacy schema)`)
+  lines.push(`- ${NOT_ADDRESSED} not addressed by this crosswalk`)
+  lines.push('')
+  lines.push('## Matrix')
+  lines.push('')
+  lines.push(...tableLines)
+  lines.push('')
+  lines.push('## Coverage')
+  lines.push('')
+  lines.push(`- Systems represented: ${systems.length}`)
+  lines.push(`- Canonical signal types: ${canonicalSignals.length}`)
+  lines.push('')
+  lines.push('### Per-signal coverage')
+  lines.push('')
+  lines.push('| Signal type | Systems mapped | Coverage |')
+  lines.push('|---|---|---|')
+  for (const { sig, n, pct } of sortedByCoverage) {
+    lines.push(`| \`${sig}\` | ${n} / ${systems.length} | ${pct}% |`)
+  }
+  lines.push('')
+
+  const top3Most = sortedByCoverage.slice(0, 3)
+  const top3Least = [...sortedByCoverage].reverse().slice(0, 3)
+  lines.push('### Top-3 most-mapped')
+  lines.push('')
+  for (const { sig, n, pct } of top3Most) {
+    lines.push(`- \`${sig}\` — ${n}/${systems.length} (${pct}%)`)
+  }
+  lines.push('')
+  lines.push('### Top-3 least-mapped')
+  lines.push('')
+  for (const { sig, n, pct } of top3Least) {
+    lines.push(`- \`${sig}\` — ${n}/${systems.length} (${pct}%)`)
+  }
+  lines.push('')
+
+  // 6. Footer — alt-format and reverse exclusions.
+  lines.push('---')
+  lines.push('')
+  lines.push('Auto-generated by `scripts/generate-crosswalk-matrix.js`. Do not edit. Re-run after any crosswalk PR merges.')
+  lines.push('')
+  if (altFormat.length > 0) {
+    lines.push('## Alternative-format crosswalks not represented in this matrix')
+    lines.push('')
+    for (const { rel, note } of altFormat) {
+      lines.push(`- \`${rel}\` — ${note}`)
+    }
+    lines.push('')
+  }
+  if (reverseSkipped.length > 0) {
+    lines.push('## Reverse crosswalks (separate matrix)')
+    lines.push('')
+    for (const rel of reverseSkipped) {
+      lines.push(`- \`${rel}\` — \`crosswalk_type: rfc_category_reverse\``)
+    }
+    lines.push('')
+  }
+  if (testFixtures.length > 0) {
+    lines.push('## Test fixtures (excluded)')
+    lines.push('')
+    for (const rel of testFixtures) {
+      lines.push(`- \`${rel}\` — deliberate negative-control fixture`)
+    }
+    lines.push('')
+  }
+
+  // 7. Write.
+  fs.mkdirSync(OUT_DIR, { recursive: true })
+  fs.writeFileSync(OUT_PATH, lines.join('\n'), 'utf8')
+
+  console.log(`generate-crosswalk-matrix: wrote ${path.relative(ROOT, OUT_PATH)}`)
+  console.log(`  ${systems.length} systems × ${canonicalSignals.length} signal types`)
+  if (altFormat.length > 0) console.log(`  excluded (alt format): ${altFormat.length}`)
+  if (reverseSkipped.length > 0) console.log(`  excluded (reverse):   ${reverseSkipped.length}`)
+  if (testFixtures.length > 0) console.log(`  excluded (fixtures):  ${testFixtures.length}`)
+}
+
+main()

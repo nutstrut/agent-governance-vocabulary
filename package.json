@@ -8,7 +8,8 @@
   },
   "scripts": {
     "validate": "node scripts/validate-crosswalks.js",
-    "test": "node scripts/validate-crosswalks.js"
+    "test": "node scripts/validate-crosswalks.js",
+    "generate:matrix": "node scripts/generate-crosswalk-matrix.js"
   },
   "repository": {
     "type": "git",
