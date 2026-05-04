@@ -55,7 +55,12 @@ Adding a new entry to `vocabulary.yaml` is a higher bar than a crosswalk, becaus
 1. **Two or more independent implementations.** A term enters as canonical only when at least two systems with independent maintainership and independent codebases implement compatible shapes for it. Single-implementation proposals can land as `status: proposed` with the implementing crosswalk cited, until a second implementation surfaces.
 2. **Semantically and structurally distinct.** A new term should represent a primitive that cannot be cleanly expressed as an existing term plus descriptors. Differences in payload shape alone are not sufficient if semantic content overlaps.
 3. **Descriptor dimensions declared.** New terms include their governance-force descriptors: `enforcement_class`, `validity_temporal`, `refusal_authority`, `invariant_survival`, `replay_class`, `governed_action_class`.
-4. **Descriptor enum extensions sequenced.** If your term requires a descriptor value not currently in the schema, the descriptor extension PR should land first, with the new term following against the updated schema.
+4. **System attributes declared together.** When a crosswalk declares any of
+   `signature_capability`, `canonicalization_profile`, or `hash_family`, it
+   SHOULD declare all three. Filtering on one without the others yields an
+   incomplete picture of what the system can validate. Crosswalks predating
+   this requirement may add the missing attributes in a follow-up PR.
+5. **Descriptor enum extensions sequenced.** If your term requires a descriptor value not currently in the schema, the descriptor extension PR should land first, with the new term following against the updated schema.
 
 ## Proposing descriptor schema changes
 
