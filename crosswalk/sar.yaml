@@ -20,6 +20,12 @@ maintainer: "nutstrut"
 spec_url: "https://github.com/nutstrut/default-settlement-verifier/blob/main/ARCHITECTURE.md"
 repository: "https://github.com/nutstrut/default-settlement-verifier"
 
+system_attributes:
+  signature_capability: ed25519
+  canonicalization_profile: JCS
+  hash_family: sha256
+
+
 mappings:
   - canonical: settlement_witness
     internal: receipt_v0_1
